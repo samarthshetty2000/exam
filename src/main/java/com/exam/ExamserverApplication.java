@@ -1,60 +1,24 @@
 package com.exam;
 
-import java.util.HashSet;
-import java.util.Set;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.CommandLineRunner;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import com.exam.entity.Role;
-import com.exam.entity.User;
-import com.exam.entity.UserRole;
-import com.exam.service.UserService;
-
+import java.util.Objects;
 @SpringBootApplication
-public class ExamserverApplication implements CommandLineRunner {
+public class ExamserverApplication {
 	
 	
-	@Autowired
-	private UserService userService;
-	
-
-	@Autowired 
-	private BCryptPasswordEncoder bCryptPasswordEncoder;
-
 	public static void main(String[] args) {
+		System.out.println("DB URL from env: " + System.getenv("DB_URL"));
+		System.out.println("DB user from env: " + System.getenv("DB_PASSWORD")+ System.getenv("DB_PASSWORD").length());
+		System.out.println("DB pass from env: " + System.getenv("DATA_USER")+ System.getenv("DATA_USER").length() + Objects.equals(System.getenv("DATA_USER"), "samarth"));
 		SpringApplication.run(ExamserverApplication.class, args);
+		
+
 	}
 
-	@Override
-	public void run(String... args) throws Exception {
-//	System.out.println("Starting Code");
-//	User  user=new User();
-//	user.setFirstName("Samarth");
-//	user.setUsername("admin");
-//	user.setLastName("Shetty");
-//	user.setEmail("samarthshetty13@gmail.com");
-//	user.setPassword(bCryptPasswordEncoder.encode("admin"));
-//	user.setPhone("9480040379");
-//	user.setProfile("default.png");
-//	
-//	Role role1=new Role();
-//	role1.setRoleId(44L);
-//	role1.setRoleName("ADMIN");
-//	
-//	
-//	Set<UserRole> userRoleSet=new HashSet<>();
-//	UserRole userRole=new UserRole();
-//	userRole.setRole(role1);
-//	userRole.setUser(user);
-//	userRoleSet.add(userRole);
-//	User user1=this.userService.createUser(user, userRoleSet);
-//	System.out.println(user1.getUsername());
-		
-	}
 	
 
 
