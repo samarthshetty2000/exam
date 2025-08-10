@@ -47,14 +47,14 @@ jobs:
             export DB_URL="${{ secrets.DB_URL }}"
             
             # Pull the latest Docker image
-            docker pull ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
+            sudo docker pull ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
             
             # Stop and remove existing container if it exists
-            docker stop my-spring-app || true
-            docker rm my-spring-app || true
+            sudo docker stop my-spring-app || true
+            sudo docker rm my-spring-app || true
             
             # Run the new container with environment variables
-            docker run -d \
+            sudo docker run -d \
               --name my-spring-app \
               -p 8080:8080 \
               -e DB_USER="${{ secrets.DB_USER }}" \
@@ -64,4 +64,4 @@ jobs:
               ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
             
             # Clean up old Docker images to save space
-            docker image prune -f
+            sudo docker image prune -f
