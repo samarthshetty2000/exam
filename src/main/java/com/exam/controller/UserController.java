@@ -59,7 +59,7 @@ public class UserController {
 	public User createUser(@RequestBody User user) throws Exception {
 		Set<UserRole> userRoles=new HashSet<>();
 		Role role=new Role();
-		role.setRoleId(45L);
+		 role.setRoleId(45L);
 		role.setRoleName("NORMAL");
 		
 		user.setPassword(bCryptPasswordEncoder.encode(user.getPassword()));

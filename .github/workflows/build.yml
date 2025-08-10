@@ -33,3 +33,35 @@ jobs:
 
       - name: Push Docker image
         run: docker push ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.5
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          script: | 
+            # Set environment variables
+            export DB_USER="${{ secrets.DB_USER }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_URL="${{ secrets.DB_URL }}"
+            
+            # Pull the latest Docker image
+            docker pull ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
+            
+            # Stop and remove existing container if it exists
+            docker stop my-spring-app || true
+            docker rm my-spring-app || true
+            
+            # Run the new container with environment variables
+            docker run -d \
+              --name my-spring-app \
+              -p 8080:8080 \
+              -e DB_USER="${{ secrets.DB_USER }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e DB_URL="${{ secrets.DB_URL }}" \
+              --restart unless-stopped \
+              ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
+            
+            # Clean up old Docker images to save space
+            docker image prune -f
