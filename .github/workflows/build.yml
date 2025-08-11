@@ -1,104 +1,58 @@
-name: Build and Deploy Spring Boot App
+name: Build and Push Docker Image
 on:
   push:
     branches:
       - master
-
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/checkout@v3
+      - name: Set up JDK 17 
+        uses: actions/setup-java@v3
         with:
           java-version: '17'
           distribution: 'temurin'
-
-      - name: Cache Maven dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
       - name: Build with Maven
         run: mvn clean package -DskipTests
-
       - name: Log in to DockerHub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          push: true
-          tags: ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
-
+      - name: Build Docker image
+        run: docker build -t ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest .
+      - name: Push Docker image
+        run: docker push ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
       - name: Deploy to server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v0.1.5
         with:
           host: ${{ secrets.SERVER_IP }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_KEY }}
-          script: |
-            echo "=== Starting deployment ==="
+          script: | 
+            # Set environment variables
+            export DB_USER="${{ secrets.DB_USER }}"
+            export DB_PASSWORD="${{ secrets.DB_PASSWORD }}"
+            export DB_URL="${{ secrets.DB_URL }}"
 
             # Pull the latest Docker image
-            echo "Pulling latest image..."
             sudo docker pull ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
 
             # Stop and remove existing container if it exists
-            echo "Stopping existing container..."
             sudo docker stop my-spring-app || true
             sudo docker rm my-spring-app || true
 
-            # Verify cleaned environment variables
-            echo "Verifying environment variables after cleaning..."
-            echo -n "$(echo "${{ secrets.DB_USER }}" | tr -d '\n\r' | xargs)" | od -c
-            echo -n "$(echo "${{ secrets.DB_PASSWORD }}" | tr -d '\n\r' | xargs)" | od -c
-            echo -n "$(echo "${{ secrets.DB_URL }}" | tr -d '\n\r' | xargs)" | od -c
-
-            # Run the new container with cleaned env variables
-            echo "Starting new container..."
+            # Run the new container with environment variables
             sudo docker run -d \
               --name my-spring-app \
               -p 8080:8080 \
-              -e DB_USER="$(echo "${{ secrets.DB_USER }}" | tr -d '\n\r' | xargs)" \
-              -e DB_PASSWORD="$(echo "${{ secrets.DB_PASSWORD }}" | tr -d '\n\r' | xargs)" \
-              -e DB_URL="$(echo "${{ secrets.DB_URL }}" | tr -d '\n\r' | xargs)" \
+              -e DB_USER="${{ secrets.DB_USER }}" \
+              -e DB_PASSWORD="${{ secrets.DB_PASSWORD }}" \
+              -e DB_URL="${{ secrets.DB_URL }}" \
               --restart unless-stopped \
-              --health-cmd="curl -f http://localhost:8080/actuator/health || exit 1" \
-              --health-interval=30s \
-              --health-timeout=10s \
-              --health-retries=3 \
               ${{ secrets.DOCKER_USERNAME }}/my-spring-app:latest
 
-            # Wait for container to start
-            echo "Waiting for container to start..."
-            sleep 10
-
-            # Check if container is running
-            if sudo docker ps | grep -q my-spring-app; then
-              echo "✅ Container started successfully"
-              sudo docker logs --tail 20 my-spring-app
-            else
-              echo "❌ Container failed to start"
-              sudo docker logs my-spring-app
-              exit 1
-            fi
-
-            # Check variables inside container
-            echo "Verifying variables inside container..."
-            sudo docker exec my-spring-app sh -c 'echo -n "$DB_USER" | od -c'
-
-            # Clean up old Docker images
-            echo "Cleaning up old images..."
+            # Clean up old Docker images to save space
             sudo docker image prune -f
-
-            echo "=== Deployment completed ==="
